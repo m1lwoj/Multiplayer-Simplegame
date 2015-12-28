@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en" ng-app>
+  <head>
+    <title>Chat Example</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/bootstrap-responsive.min.css">
+    <style>
+      body {
+        padding-top: 60px;
+      }
+    </style>
+    <script>
+    
+      function ChatController($scope) {
+
+        var socket = io.connect();
+  
+        $scope.info = 'Podaj nazwe'
+        $scope.messages = [];
+        $scope.roster = [];
+        $scope.name = '';
+        $scope.text = '';
+        
+        $scope.amReady = false;
+        $scope.opponentReady = false;
+        $scope.isInitialized = false;
+
+        socket.on('connect', function () {
+          $scope.setName();
+        });
+        
+         socket.on('disconnected', function() {
+            $scope.close();
+        });
+
+         socket.on('readiness', function (data) {
+           var runGame = true;
+           
+           if(data.isReady === true)
+           {
+             if(data.name === $scope.name)
+             {
+                $scope.amReady = true;
+             }
+             else
+             {
+               $scope.opponentReady = true;
+             }
+           }
+           else
+           {
+            if(data.name !== $scope.name)
+            {
+              $scope.amReady = $scope.opponentReady = runGame = false;
+            }
+           }
+           
+           if(runGame === false)
+           {
+              $scope.info = data.name + ' zrezygnowal';
+              $scope.stop();
+              $scope.$apply();
+           }
+           
+           if($scope.amReady === true && $scope.opponentReady === true)
+           {
+              $scope.init();
+           }
+         });
+         
+        socket.on('message', function (msg) {
+          
+          var points = msg.points[msg.name.name] != null ? msg.points[msg.name.name].toString() : "" 
+          if($scope.name == msg.name.name)
+          {
+            if(msg.text === 'start')
+            {
+              $scope.amReady = true;
+              msg.text = 'gotowy'
+              $scope.messages[0] = msg
+              $scope.info = 'oczekiwanie na drugiego gracza' 
+            }
+            else
+            {
+              msg.text = 'Me: ' + msg.text + ', punktów: ' + points;
+              $scope.messages[0] = msg
+            }
+          }
+          else
+          {
+            if(msg.text === 'start')
+            {
+              $scope.opponentReady = true;
+              msg.text = 'gotowy'
+              $scope.messages[1] = msg
+            }
+            else
+            {
+              msg.text = 'Opponent: ' + msg.text + ', punktów: ' + points;
+              oppX = msg.x;
+              oppY = msg.y
+              historyX.push(oppX);
+	            historyY.push(oppY);
+	
+              $scope.messages[1] = msg
+            }
+          }
+          
+          $scope.$apply();
+          
+          if($scope.messages[1] !== undefined && $scope.messages[0] !== undefined && $scope.isInitialized === false)
+          {
+          	$scope.init();
+          }
+        });
+
+        socket.on('roster', function (names) {
+          $scope.roster = names;
+          $scope.$apply();
+          
+          if((names[0] === undefined || names[1] === undefined) && $scope.isInitialized === true)
+          {
+            $scope.info = 'Koniec';
+            $scope.isInitialized = false;
+            $scope.close();
+          }
+        });
+        
+        $scope.init = function initialize()
+        {
+          	$scope.isInitialized = true;
+            var localPos = init();
+          	animate();
+          	$scope.info = 'Graj';
+          	$scope.$apply();
+          	socket.emit('message', localPos.startX, localPos.startY);
+        }
+        
+        $scope.start = function start() {
+            socket.emit('readiness', $scope.name, true);
+            $scope.amReady = true;
+            $scope.setName();
+            $("#nameTb").prop('disabled', 'disabled')
+            $("#startBtn").prop('disabled', 'disabled');
+            $('#stopBtn').removeAttr('disabled');
+          };
+
+        $scope.finish = function finish()
+        {
+            socket.emit('readiness', $scope.name, false);
+            $scope.stop();
+        }
+
+        $scope.stop = function stop() {
+            $scope.amReady = false;
+            $("#nameTb").removeAttr('disabled');
+            $("#startBtn").removeAttr('disabled');
+            $('#stopBtn').prop('disabled', 'disabled');
+            $scope.info = 'zrezygnowałeś';
+            $scope.$apply();
+            closing();
+          };
+
+        $scope.send = function send() {
+          console.log('Sending message:', $scope.text);
+          socket.emit('message', $scope.text);
+          $scope.text = '';
+        };
+
+        $scope.setName = function setName() {
+          socket.emit('identify', { name: $scope.name, isReady: $scope.amReady });
+        };
+      }
+    </script>
+  </head>
+  <body>
+    
+    <canvas id="gameCanvas" width="200px" height="200px" style="border-style: solid;"></canvas>
+		
+    <div class="container" ng-controller="ChatController">
+      <div class="navbar navbar-fixed-top navbar-inverse">
+        <div class="navbar-inner">
+          <div class="pull-right">
+            <a href="https://c9.io" class="brand">Cloud9 IDE</a>
+          </div>
+        </div>
+      </div>
+      <div class="page-header">
+         <span class="span2" ng-bind="info"></td>
+      </div>
+
+      <div class="row">
+        <div class="span3">
+          <ul class="nav nav-list well">
+            <li class="nav-header">Local Users</li>
+            <li ng-repeat="user in roster" ng-bind="user.name"> 
+             <li ng-repeat="user in roster" ng-bind="user.isReady"> 
+            </li>
+          </ul>
+        </div>
+        <div class="span3">
+          <form ng-submit="start()">
+            <div class="input-append span4">
+              <input type="text" class="input-block-level" id="nameTb" ng-model="name" ng-change="setName()" placeholder="Your Name">
+              <input type="submit" class="span1 btn btn-warn" id="startBtn" value="Start">
+            </div>
+           </form>
+           <form ng-submit="finish()">
+            <div class="input-append span4">
+              <input type="submit" class="span1 btn btn-warn" id="stopBtn" value="Stop">
+            </div>
+           </form>
+        </div>
+        <div class="span9">
+          <table class="table table-striped table-bordered">
+            <thead>
+              <tr>
+                <th class="span2">Name</th>
+                <th class="span7">Text</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="msg in messages">
+                <td class="span2" ng-bind="msg.name"></td>
+                <td class="span7" ng-bind="msg.text"></td>
+              </tr>
+            </tbody>
+          </table>
+          
+        </div>
+      </div>
+    </div>
+    <script src="js/requestAnimationFrame.js"></script>
+		<script src="js/Keys.js"></script>
+		<script src="js/Player.js"></script>
+		<script src="js/game.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/angular.min.js"></script>
+  </body>
+</html>
