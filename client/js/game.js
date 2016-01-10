@@ -8,11 +8,20 @@ var canvas,			// Canvas DOM element
 	remotePlayer,
 	oppX,
 	oppY,
+	oppLastX,
+	oppLastY,
+	localX,
+	localY,
+	localLastX,
+	localLastY,
+	PLAYER_SIZE = 30,
+	BOARD_SIZE = 600,
 	globalId;
 	
 	var historyX = new Array();
     var historyY = new Array();
 
+    var board;
 
 /**************************************************
 ** GAME INITIALISATION
@@ -21,6 +30,7 @@ function init() {
 	// Declare the canvas and rendering context
 	canvas = document.getElementById("gameCanvas");
 	ctx = canvas.getContext("2d");
+	
 
 	// Maximise the canvas
 //	canvas.width = window.innerWidth;
@@ -37,7 +47,7 @@ function init() {
 
 	// Initialise the local player
 	localPlayer = new Player(startX, startY);
-
+	
 	
 	// Start listening for events
 	setEventHandlers();
@@ -93,7 +103,7 @@ function onKeyup(e) {
 **************************************************/
 function animate() {
 	update();
-	drawOpponent(oppX, oppY);
+	draw();
 
 	// Request a new animation frame using Paul Irish's shim
 	 globalID = window.requestAnimFrame(animate);
@@ -112,25 +122,55 @@ function update() {
 ** GAME DRAW
 **************************************************/
 function draw() {
-	// WipWe the canvas clean
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
+		// WipWe the canvas clean
+	//ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-	// Draw the local player
-	localPlayer.draw(ctx);
-};
-
-function drawOpponent(x, y) {
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-	    for (var i = 0; i < historyX.length; i++) {
-	            ctx.fillStyle="#7f99b2";
-	        	ctx.fillRect(historyX[i]-5, historyY[i]-5, 10, 10); 
-	    }
-	    
-	    	
+ 	
+   	var red_farm = new Image();
+  	 red_farm.src = 'img/farm7.jpg';
+  	 ctx.globalAlpha = 1;
+    ctx.drawImage(red_farm,localLastX - 16, localLastY - 16);
+    
 	ctx.fillStyle="#003366";
-	ctx.fillRect(x-5, y-5, 10, 10);
-
-	    	// Draw the local player
-	localPlayer.draw(ctx);
+	ctx.fillRect(localX - 15, localY - 15, PLAYER_SIZE, PLAYER_SIZE);
 };
+
+function drawOpponent() {
+   	var red_farm = new Image();
+  	 red_farm.src = 'img/farm5.jpg';
+  	 ctx.globalAlpha = 1;
+    ctx.drawImage(red_farm,oppLastX - 16, oppLastY - 16);
+	 		
+	 ctx.globalAlpha = 0.5;
+	ctx.fillStyle="#FA2F2F";
+ 	ctx.fillRect(oppX - 15, oppY - 15, PLAYER_SIZE, PLAYER_SIZE);
+};
+
+
+function slope(a, b) {
+    if (a[0] == b[0]) {
+        return null;
+    }
+
+    return (b[1] - a[1]) / (b[0] - a[0]);
+}
+
+function intercept(point, slope) {
+    if (slope === null) {
+        // vertical line
+        return point[0];
+    }
+
+    return point[1] - slope * point[0];
+}
+
+
+function findOnBoard (x, y) {
+  for (var i = 0; i < board.length; i++) {
+    if (board[i].X === x && board[i].Y === y) {
+      return board[i];
+    }
+  }
+
+  return null;
+}

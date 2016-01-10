@@ -85,6 +85,7 @@
             {
               msg.text = 'Me: ' + msg.text + ', punktów: ' + points;
               $scope.messages[0] = msg
+              console.log(msg.text);
             }
           }
           else
@@ -98,11 +99,12 @@
             else
             {
               msg.text = 'Opponent: ' + msg.text + ', punktów: ' + points;
+              oppLastX = oppX;
+              oppLastY = oppY;
               oppX = msg.x;
-              oppY = msg.y
-              historyX.push(oppX);
-	            historyY.push(oppY);
-	
+              oppY = msg.y;
+              drawOpponent();
+             console.log(msg.text);
               $scope.messages[1] = msg
             }
           }
@@ -176,7 +178,7 @@
   </head>
   <body>
     
-    <canvas id="gameCanvas" width="200px" height="200px" style="border-style: solid;"></canvas>
+    <canvas id="gameCanvas" width="1000" height="600px" style="border-style: solid; background:url(img/bg.jpg);"></canvas>
 		
     <div class="container" ng-controller="ChatController">
       <div class="navbar navbar-fixed-top navbar-inverse">

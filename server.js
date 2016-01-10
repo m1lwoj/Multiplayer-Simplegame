@@ -46,11 +46,12 @@ io.on('connection', function (socket) {
         };
 
         board.length = 0;
+        points = null;
         
         board = [];
-        for(var x = 0; x < 200; x++){
+        for(var x = 0; x < 1000; x++){
             board[x] = [];    
-            for(var y = 0; y < 200; y++){ 
+            for(var y = 0; y < 600; y++){ 
                 board[x][y] = null;    
             }    
         }
@@ -87,31 +88,36 @@ io.on('connection', function (socket) {
           data.isReady = isReady;
         })
 
-        if(x>= 0 && x<=200 && y >=0 && y<= 200)
-        {
-          if(board[x][y] === null || board[x][y] === undefined)
-          {
-              board[x][y]= data.name.name
-  
-              if(points[data.name.name] !== undefined)
-              {
-                 points[data.name.name] = points[data.name.name] + 1;
-              }
-              else
-              {
-                points[data.name.name] = 0
-              }
-          }
-          else if(board[x][y] !== null && board[x][y] !== undefined && board[x][y] !== data.name.name)
-          {
-              points[data.name.name] = points[data.name.name] - 100;
-          }
-          
-          data.points = points;
+
+        for (var i = x - 15; i <= x + 15; i++) {
+        		   	for (var j = y - 15; j <= y + 15; j++) {
+                  if(i >= 0 && i <=1000 && j >= 0 && j <= 600)
+                  {
+                    if(board[i][j] === null || board[i][j] === undefined)
+                    {
+                        board[i][j]= data.name.name
+            
+                        if(points[data.name.name] !== undefined)
+                        {
+                           points[data.name.name] = points[data.name.name] + 1;
+                        }
+                        else
+                        {
+                          points[data.name.name] = 0
+                        }
+                    }
+                    else if(board[i][j] !== null && board[i][j] !== undefined && board[i][j] !== data.name.name)
+                    {
+                        points[data.name.name] = points[data.name.name] - 10;
+                    }
+                    
+                    data.points = points;
+                  }
+        		   	}
         }
         
         broadcast('message', data);
-        messages.push(data);
+        // messages.push(data);
       });
     });
 
